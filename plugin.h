@@ -19,7 +19,27 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H 1
 
-#define PLUGIN_SYMBOL(symbol) \
-static const char plugin_requirement_ ## symbol [] __attribute__ ((section (".comment.plugin_symbols"))) = #symbol
+#define _PLUGIN_CONCAT(foo, bar) foo ## bar
+#define _PLUGIN_STRINGIFY_2(foo) #foo
+#define _PLUGIN_STRINGIFY(foo) _PLUGIN_STRINGIFY_2(foo)
+
+#define _PLUGIN_DIRECTORY(counter, dirname) \
+	static const char \
+		_PLUGIN_CONCAT(_plugin_directory_name_, count) [] \
+		__attribute ((section (".plugin.directories"))) = \
+		#dirname
+#define PLUGIN_DIRECTORY(dirname) \
+	_PLUGIN_DIRECTORY(__COUNTER__, dirname)
+
+#define _PLUGIN_FILE(count, filename) \
+	static const char \
+		_PLUGIN_CONCAT(_plugin_requirement_, count)  [] \
+		__attribute__ ((section (".plugin.filenames"))) = \
+		#filename ; \
+		extern void * plugin_list_start __attribute__ ((weak, alias ("_plugin_requirement_0")))
+#define PLUGIN_FILE(filename) \
+	_PLUGIN_FILE(__COUNTER__, filename)
+
+typedef int (*plugin_callback_fn)(char *filename, char *liblist, size_t size);
 
 #endif /* PLUGIN_H */

@@ -1,23 +1,31 @@
 
 
 CC = gcc
-CFLAGS = -g3 -O0 --std=gnu11 -lelf
+CFLAGS = -g3 -O0 --std=gnu11 -fPIC
 
-TARGETS = foo.so unplug
+TARGETS = libplugin.so foo.so unplug
 
 all : $(TARGETS)
 
 unplug : unplug.o
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< -ldl -lelf -Wl,-rpath,/home/pjones/devel/local/unplug -L. -lplugin
+	
+# -Wl,--wrap,open
 
-%.so : %.o
+libplugin.so : plugin.o
 	$(CC) $(CFLAGS) --shared -o $@ $<
+
+foo.so : foo.o
+	$(CC) $(CFLAGS) --shared -o $@ $< -L. -lplugin
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-foo.o : foo.c
-	$(CC) -fPIC -c -o $@ $<
+%.E : %.c
+	$(CC) $(CFLAGS) -E -o $@ $<
+
+%.s : %.c
+	$(CC) $(CFLAGS) -s -o $@ $<
 
 clean :
-	@rm -rf $(TARGETS) *.o *.so
+	@rm -vf $(TARGETS) *.o *.so *.E

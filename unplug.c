@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <dlfcn.h>
 #include <elf.h>
 #include <elfutils/libebl.h>
 #include <fcntl.h>
@@ -28,6 +29,32 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "plugin.h"
+
+static int
+get_callback_function(char *filename, plugin_callback_fn *cbr)
+{
+	void *dl = dlopen(filename, RTLD_LAZY|RTLD_DEEPBIND|RTLD_NODELETE);
+
+	if (!dl) {
+		fprintf(stderr, "Could not open library: %s\n", dlerror());
+		return -1;
+	}
+
+	void *cb = dlsym(dl, "plugin_callback");
+	if (!cb) {
+		fprintf(stderr, "Could not find plugin_callback: %s\n", dlerror());
+		dlclose(dl);
+		return -1;
+	}
+
+	*cbr = cb;
+
+	dlclose(dl);
+
+	return 0;
+}
 
 static int
 dump_requires(char *filename, int fd)
@@ -63,15 +90,16 @@ dump_requires(char *filename, int fd)
 			return -1;
 		}
 
-
 		char *name = elf_strptr(elf, shstrndx, shdr.sh_name);
-		if (!strcmp(name, ".comment.plugin_symbols")) {
+		if (!strcmp(name, ".plugin.filenames")) {
 			Elf_Data *datap;
 
 			datap = elf_rawdata(scn, NULL);
 			if (!datap) {
 				fprintf(stderr, "ELF Error: %s\n",
 					elf_errmsg(elf_errno()));
+				elf_end(elf);
+				return -1;
 			}
 
 			size_t fsize;
@@ -80,8 +108,17 @@ dump_requires(char *filename, int fd)
 
 			char *scndata = rawfile + shdr.sh_offset + datap->d_off;
 
-			write(1, scndata, datap->d_size);
-			continue;
+			plugin_callback_fn cb;
+			rc = get_callback_function(filename, &cb);
+			if (rc < 0) {
+				fprintf(stderr, "could not get callback\n");
+				elf_end(elf);
+				return rc;
+			}
+
+			rc = cb(filename, scndata, datap->d_size);
+			elf_end(elf);
+			return rc;
 		}
 	} while (scn != NULL);
 }
