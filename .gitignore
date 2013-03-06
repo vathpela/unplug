@@ -1,3 +1,4 @@
 *.o
+*.E
 *.so
 unplug
