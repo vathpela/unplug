@@ -52,6 +52,9 @@ plugin_callback(char *filename, char *liblist, size_t size)
 		}
 
 		while (lm) {
+			printf("%s\n", lm->l_name);
+
+#if 0
 			Dl_info di;
 			memset(&di, '\0', sizeof (di));
 
@@ -60,6 +63,7 @@ plugin_callback(char *filename, char *liblist, size_t size)
 				goto next_map;
 			printf("%s\n", di.dli_fname);
 next_map:
+#endif
 			lm = lm->l_next;
 		}
 
