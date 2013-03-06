@@ -8,7 +8,7 @@ TARGETS = libplugin.so foo.so unplug
 all : $(TARGETS)
 
 unplug : unplug.o
-	$(CC) $(CFLAGS) -o $@ $< -ldl -lelf -Wl,-rpath,/home/pjones/devel/local/unplug -L. -lplugin
+	$(CC) $(CFLAGS) -o $@ $< -ldl -lelf -Wl,-rpath,$(shell pwd) -L. -lplugin
 	
 # -Wl,--wrap,open
 
